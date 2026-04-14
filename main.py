@@ -1,53 +1,56 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from datetime import datetime
+from typing import Optional
 
 app = FastAPI()
 
-# Simulação de banco em memória
-usuarios = []
+# ---- MODELO GENÉRICO ----
+class Request(BaseModel):
+    operacao: str
+    a: Optional[float] = None
+    b: Optional[float] = None
+    valor: Optional[float] = None
 
-# Modelo de entrada
-class Usuario(BaseModel):
-    nome: str
-    idade: int
-    email: str
+# ---- LÓGICA CENTRAL ----
+@app.post("/processar")
+def processar(req: Request):
 
-@app.get("/")
-def home():
-    return {
-        "status": "online",
-        "sistema": "API de testes",
-        "horario": datetime.now().isoformat()
-    }
+    op = req.operacao.lower()
 
-@app.get("/health")
-def health():
-    return {
-        "status": "ok",
-        "mensagem": "API funcionando corretamente"
-    }
+    # 🧮 CALCULADORA
+    if op == "somar":
+        return {"resultado": req.a + req.b}
 
-@app.post("/usuarios")
-def criar_usuario(usuario: Usuario):
-    usuarios.append(usuario.dict())
-    return {
-        "mensagem": "Usuário criado com sucesso",
-        "total_usuarios": len(usuarios),
-        "dados": usuario
-    }
+    elif op == "subtrair":
+        return {"resultado": req.a - req.b}
 
-@app.get("/usuarios")
-def listar_usuarios():
-    return {
-        "total": len(usuarios),
-        "usuarios": usuarios
-    }
+    elif op == "multiplicar":
+        return {"resultado": req.a * req.b}
 
-@app.get("/executar")
-def executar(nome: str, tarefa: str = "processar dados"):
-    return {
-        "mensagem": f"Olá {nome}, tarefa '{tarefa}' executada com sucesso",
-        "status": "concluído",
-        "timestamp": datetime.now().isoformat()
-    }
+    elif op == "dividir":
+        if req.b == 0:
+            return {"erro": "divisão por zero"}
+        return {"resultado": req.a / req.b}
+
+    # 💰 IMPOSTO
+    elif op == "imposto":
+        if req.valor <= 2000:
+            taxa = 0
+        elif req.valor <= 5000:
+            taxa = 0.1
+        elif req.valor <= 10000:
+            taxa = 0.2
+        else:
+            taxa = 0.3
+
+        imposto = req.valor * taxa
+
+        return {
+            "valor": req.valor,
+            "taxa": taxa,
+            "imposto": imposto,
+            "liquido": req.valor - imposto
+        }
+
+    # ❌ OPERAÇÃO INVÁLIDA
+    return {"erro": "operação inválida"}
